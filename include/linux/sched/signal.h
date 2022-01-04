@@ -109,9 +109,13 @@ struct signal_struct {
 
 	/* thread group exit support */
 	int			group_exit_code;
-	/* notify group_exec_task when notify_count is less or equal to 0 */
+	/* overloaded:
+	 * - notify group_exit_task when ->count is equal to notify_count
+	 * - everyone except group_exit_task is stopped during signal delivery
+	 *   of fatal signals, group_exit_task processes the signal.
+	 */
 	int			notify_count;
-	struct task_struct	*group_exec_task;
+	struct task_struct	*group_exit_task;
 
 	/* thread group stop support, overloads group_exit_code too */
 	int			group_stop_count;
@@ -271,11 +275,11 @@ static inline void signal_set_stop_flags(struct signal_struct *sig,
 	sig->flags = (sig->flags & ~SIGNAL_STOP_MASK) | flags;
 }
 
-/* If true, all threads except ->group_exec_task have pending SIGKILL */
+/* If true, all threads except ->group_exit_task have pending SIGKILL */
 static inline int signal_group_exit(const struct signal_struct *sig)
 {
 	return	(sig->flags & SIGNAL_GROUP_EXIT) ||
-		(sig->group_exec_task != NULL);
+		(sig->group_exit_task != NULL);
 }
 
 extern void flush_signals(struct task_struct *);
